@@ -11,7 +11,7 @@ export default function AddressInput({
 }) {
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">
+      <label className="block text-sm font-medium text-gray-300">
         Wallet Address
       </label>
       <input
@@ -19,13 +19,13 @@ export default function AddressInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="0x..."
-        className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+        className={`w-full rounded-lg border bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-1 ${
           error
-            ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/50"
+            : "border-white/10 focus:border-indigo-500/50 focus:ring-indigo-500/50"
         }`}
       />
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
   );
 }

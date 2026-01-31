@@ -36,7 +36,7 @@ export default function ApiKeyInput({
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">
+      <label className="block text-sm font-medium text-gray-300">
         Moralis API Key
       </label>
       <div className="flex gap-2">
@@ -48,26 +48,29 @@ export default function ApiKeyInput({
             setSaved(false);
           }}
           placeholder="Paste your Moralis API key"
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 transition-all duration-200 focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
         />
         {saved ? (
           <button
             onClick={handleClear}
-            className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+            className="rounded-lg border border-white/10 px-4 py-2 text-sm font-medium text-gray-400 transition-all duration-200 hover:border-white/20 hover:text-gray-300"
           >
             Clear
           </button>
         ) : (
           <button
             onClick={handleSave}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:from-indigo-400 hover:to-violet-400"
           >
             Save
           </button>
         )}
       </div>
       {saved && (
-        <p className="text-xs text-green-600">Key saved to localStorage</p>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          Key saved
+        </span>
       )}
     </div>
   );
