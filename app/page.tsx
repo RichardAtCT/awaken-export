@@ -100,7 +100,7 @@ export default function Home() {
         <div className="space-y-6">
           <ApiKeyInput onKeyChange={onKeyChange} />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <ChainSelector value={chainKey} onChange={setChainKey} />
             <div>
               <label className="mb-1.5 block text-sm font-medium text-[#44403C]">
