@@ -38,13 +38,12 @@ function cleanAmount(
 
 export function formatDate(iso: string): string {
   const d = new Date(iso);
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(d.getUTCDate()).padStart(2, "0");
-  const yyyy = d.getUTCFullYear();
-  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const m = d.getUTCMonth() + 1;
+  const day = d.getUTCDate();
+  const yy = String(d.getUTCFullYear()).slice(-2);
+  const h = d.getUTCHours();
   const min = String(d.getUTCMinutes()).padStart(2, "0");
-  const ss = String(d.getUTCSeconds()).padStart(2, "0");
-  return `${mm}/${dd}/${yyyy} ${hh}:${min}:${ss}`;
+  return `${m}/${day}/${yy} ${h}:${min}`;
 }
 
 export function calculateFee(gasPrice: string, gasUsed: string): string {
@@ -143,17 +142,15 @@ export function toAwakenCSV(
   chain: ChainConfig
 ): string {
   const header =
-    "Date,Received Amount,Received Currency,Received Value,Sent Amount,Sent Currency,Sent Value,Fee Amount,Fee Currency,Tag";
+    "Date,Received Quantity,Received Currency,Sent Quantity,Sent Currency,Fee Amount,Fee Currency,Notes";
 
   const rows = transactionsToCsvRows(transactions, chain).map((r) =>
     [
       r.date,
       r.receivedAmount,
       r.receivedCurrency,
-      "", // received value
       r.sentAmount,
       r.sentCurrency,
-      "", // sent value
       r.feeAmount,
       r.feeCurrency,
       r.tag,
