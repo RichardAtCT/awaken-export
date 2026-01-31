@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { ChainConfig, fetchChains } from "@/lib/chains";
 import { fetchAllTransactions, AbortedWithData } from "@/lib/blockscout";
 import { transactionsToCsvRows } from "@/lib/csv";
@@ -9,7 +10,6 @@ import ChainSelector from "@/components/ChainSelector";
 import AddressInput from "@/components/AddressInput";
 import TransactionTable from "@/components/TransactionTable";
 import DownloadButton from "@/components/DownloadButton";
-import AiMode from "@/components/AiMode";
 
 export default function Home() {
   const [chains, setChains] = useState<ChainConfig[]>([]);
@@ -87,13 +87,6 @@ export default function Home() {
     abortRef.current?.abort();
   }
 
-  const aiActions = useMemo(() => ({
-    setAddress,
-    setChainId,
-    setTransactions,
-    setCsvRows,
-  }), []);
-
   return (
     <main className="relative mx-auto max-w-4xl px-4 py-12">
       {/* Header */}
@@ -104,10 +97,19 @@ export default function Home() {
             Awaken Tax CSV Exporter
           </h1>
         </div>
-        <p className="text-sm text-[#78716C]">
-          Export wallet transactions to Awaken Tax format for {chains.length} EVM
-          chains via BlockScout.
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-[#78716C]">
+            Export wallet transactions to Awaken Tax format for{" "}
+            {chains.length} EVM chains via BlockScout.
+          </p>
+          <Link
+            href="/ai"
+            className="ml-auto flex items-center gap-1.5 rounded-md bg-[#1C1917] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#292524] transition-colors whitespace-nowrap"
+          >
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#C85A3E]" />
+            AI Mode
+          </Link>
+        </div>
       </div>
 
       {/* Card */}
@@ -164,15 +166,6 @@ export default function Home() {
               address={address}
             />
           )}
-
-          <AiMode
-            chains={chains}
-            chain={chain}
-            address={address}
-            transactions={transactions}
-            csvRows={csvRows}
-            actions={aiActions}
-          />
 
           <TransactionTable rows={csvRows} />
         </div>
