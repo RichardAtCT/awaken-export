@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { ChainConfig, fetchChains } from "@/lib/chains";
 import { fetchAllTransactions, AbortedWithData } from "@/lib/blockscout";
 import { transactionsToCsvRows } from "@/lib/csv";
@@ -87,6 +87,13 @@ export default function Home() {
     abortRef.current?.abort();
   }
 
+  const aiActions = useMemo(() => ({
+    setAddress,
+    setChainId,
+    setTransactions,
+    setCsvRows,
+  }), []);
+
   return (
     <main className="relative mx-auto max-w-4xl px-4 py-12">
       {/* Header */}
@@ -159,10 +166,12 @@ export default function Home() {
           )}
 
           <AiMode
+            chains={chains}
             chain={chain}
             address={address}
             transactions={transactions}
             csvRows={csvRows}
+            actions={aiActions}
           />
 
           <TransactionTable rows={csvRows} />
