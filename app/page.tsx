@@ -9,6 +9,7 @@ import ChainSelector from "@/components/ChainSelector";
 import AddressInput from "@/components/AddressInput";
 import TransactionTable from "@/components/TransactionTable";
 import DownloadButton from "@/components/DownloadButton";
+import AiMode from "@/components/AiMode";
 
 export default function Home() {
   const [chains, setChains] = useState<ChainConfig[]>([]);
@@ -156,6 +157,13 @@ export default function Home() {
               address={address}
             />
           )}
+
+          <AiMode
+            chain={chain}
+            address={address}
+            transactions={transactions}
+            csvRows={csvRows}
+          />
 
           <TransactionTable rows={csvRows} />
         </div>
