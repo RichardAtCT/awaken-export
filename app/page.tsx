@@ -29,8 +29,8 @@ export default function Home() {
   const onKeyChange = useCallback((key: string) => setApiKey(key), []);
 
   function validateAddress(addr: string): boolean {
-    if (!addr.startsWith("0x") || addr.length !== 42) {
-      setAddressError("Address must start with 0x and be 42 characters");
+    if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
+      setAddressError("Address must be a valid 42-character hex address (0x...)");
       return false;
     }
     setAddressError("");

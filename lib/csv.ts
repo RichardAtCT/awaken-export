@@ -56,6 +56,18 @@ export function calculateFee(gasPrice: string, gasUsed: string): string {
   return `${whole}.${decimal}`.replace(/0+$/, "").replace(/\.$/, "");
 }
 
+function escapeCSV(field: string): string {
+  if (!field) return field;
+  const first = field[0];
+  if (first === "=" || first === "+" || first === "-" || first === "@") {
+    field = "'" + field;
+  }
+  if (field.includes(",") || field.includes('"') || field.includes("\n")) {
+    field = '"' + field.replace(/"/g, '""') + '"';
+  }
+  return field;
+}
+
 function parseTransfers(tx: Transaction, chain: ChainConfig): CsvRow[] {
   const rows: CsvRow[] = [];
   const fee = calculateFee(tx.gas_price, tx.receipt_gas_used);
@@ -146,14 +158,14 @@ export function toAwakenCSV(
 
   const rows = transactionsToCsvRows(transactions, chain).map((r) =>
     [
-      r.date,
-      r.receivedAmount,
-      r.receivedCurrency,
-      r.sentAmount,
-      r.sentCurrency,
-      r.feeAmount,
-      r.feeCurrency,
-      r.tag,
+      escapeCSV(r.date),
+      escapeCSV(r.receivedAmount),
+      escapeCSV(r.receivedCurrency),
+      escapeCSV(r.sentAmount),
+      escapeCSV(r.sentCurrency),
+      escapeCSV(r.feeAmount),
+      escapeCSV(r.feeCurrency),
+      escapeCSV(r.tag),
     ].join(",")
   );
 

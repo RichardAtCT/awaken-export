@@ -18,7 +18,8 @@ export default function DownloadButton({
   function handleDownload() {
     const csv = toAwakenCSV(transactions, chain);
     const now = new Date().toISOString().slice(0, 10);
-    const filename = `${chain.name}_${address.slice(0, 8)}_${now}.csv`;
+    const safeAddr = address.slice(0, 8).replace(/[^0-9a-fA-Fx]/g, "");
+    const filename = `${chain.name}_${safeAddr}_${now}.csv`;
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

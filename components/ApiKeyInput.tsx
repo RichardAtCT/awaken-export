@@ -91,6 +91,9 @@ export default function ApiKeyInput({
           </button>
         )}
       </div>
+      <p className="text-[11px] text-[#A8A29E]">
+        Your API key is stored in browser localStorage and never sent to our servers.
+      </p>
       {saved && (
         <span className="text-xs font-medium text-[#15803D]">Key saved</span>
       )}

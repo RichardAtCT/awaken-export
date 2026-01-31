@@ -32,7 +32,7 @@ export async function fetchTransactions(
 
     let res: Response;
     try {
-      res = await fetch(`/api/transactions?address=${address}&${params}`, {
+      res = await fetch(`/api/transactions?address=${encodeURIComponent(address)}&${params}`, {
         headers: { "x-moralis-key": apiKey },
         signal,
       });

@@ -19,8 +19,9 @@ export async function GET(req: NextRequest) {
     }
 
     const body = await res.text();
+    console.error("Moralis health check failed:", res.status, body);
     return NextResponse.json(
-      { valid: false, error: body || `Moralis returned ${res.status}` },
+      { valid: false, error: `Moralis returned ${res.status}` },
       { status: 200 },
     );
   } catch (err) {
