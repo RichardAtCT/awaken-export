@@ -4,12 +4,14 @@ export interface ChainConfig {
   symbol: string;
   decimals: number;
   apiUrl: string;
+  logo: string;
 }
 
 interface ChainScoutEntry {
   name: string;
   isTestnet: boolean;
   native_currency: string;
+  logo: string;
   explorers: { url: string; hostedBy: string }[];
 }
 
@@ -28,7 +30,6 @@ export async function fetchChains(): Promise<ChainConfig[]> {
   const chains: ChainConfig[] = [];
 
   for (const [chainId, entry] of Object.entries(data)) {
-    if (entry.isTestnet) continue;
     const hosted = entry.explorers?.find((e) => e.hostedBy === "blockscout");
     if (!hosted) continue;
 
@@ -40,6 +41,7 @@ export async function fetchChains(): Promise<ChainConfig[]> {
       symbol: entry.native_currency || "ETH",
       decimals: 18,
       apiUrl,
+      logo: entry.logo || "",
     });
   }
 
