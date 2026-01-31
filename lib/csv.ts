@@ -15,7 +15,26 @@ const TAG_MAP: Record<string, string> = {
   deposit: "Deposit",
   withdraw: "Withdraw",
   "contract interaction": "Contract",
+  "nft trade": "NFT",
+  approve: "Approval",
 };
+
+function cleanAmount(
+  formatted: string | undefined,
+  raw: string | undefined,
+  decimals: number
+): string {
+  let num: number;
+  if (formatted) {
+    num = parseFloat(formatted);
+  } else if (raw) {
+    num = Number(BigInt(raw)) / 10 ** decimals;
+  } else {
+    return "";
+  }
+  if (isNaN(num) || num === 0) return "0";
+  return parseFloat(num.toFixed(8)).toString();
+}
 
 export function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -38,11 +57,11 @@ export function calculateFee(gasPrice: string, gasUsed: string): string {
   return `${whole}.${decimal}`.replace(/0+$/, "").replace(/\.$/, "");
 }
 
-function parseTransfers(tx: Transaction): CsvRow[] {
+function parseTransfers(tx: Transaction, chain: ChainConfig): CsvRow[] {
   const rows: CsvRow[] = [];
   const fee = calculateFee(tx.gas_price, tx.receipt_gas_used);
   const date = formatDate(tx.block_timestamp);
-  const tag = TAG_MAP[tx.category] || "";
+  const tag = TAG_MAP[tx.category?.toLowerCase()] || "";
 
   const natives = tx.native_transfers || [];
   const erc20s = tx.erc20_transfers || [];
@@ -73,11 +92,12 @@ function parseTransfers(tx: Transaction): CsvRow[] {
       feeCurrency: "",
       tag,
     };
+    const amount = cleanAmount(t.value_formatted, t.value, chain.decimals);
     if (t.direction === "incoming") {
-      row.receivedAmount = t.value_formatted;
+      row.receivedAmount = amount;
       row.receivedCurrency = t.token_symbol;
     } else {
-      row.sentAmount = t.value_formatted;
+      row.sentAmount = amount;
       row.sentCurrency = t.token_symbol;
     }
     rows.push(row);
@@ -94,11 +114,12 @@ function parseTransfers(tx: Transaction): CsvRow[] {
       feeCurrency: "",
       tag,
     };
+    const amount = cleanAmount(t.value_formatted, t.value, parseInt(t.token_decimals));
     if (t.direction === "incoming") {
-      row.receivedAmount = t.value_formatted;
+      row.receivedAmount = amount;
       row.receivedCurrency = t.token_symbol;
     } else {
-      row.sentAmount = t.value_formatted;
+      row.sentAmount = amount;
       row.sentCurrency = t.token_symbol;
     }
     rows.push(row);
@@ -112,7 +133,7 @@ export function transactionsToCsvRows(
   chain: ChainConfig
 ): CsvRow[] {
   return transactions.flatMap((tx) => {
-    const rows = parseTransfers(tx);
+    const rows = parseTransfers(tx, chain);
     return rows.map((r) => ({ ...r, feeCurrency: chain.symbol }));
   });
 }
