@@ -384,10 +384,20 @@ export default function AiPage() {
 
   return (
     <div className="flex h-screen bg-[#0F0F0F] text-[#E7E5E4]">
+      {/* ── Sidebar overlay (mobile) ── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 sm:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* ── Sidebar ── */}
       <aside
         className={`flex flex-col border-r border-[#2A2A2A] bg-[#171717] transition-all duration-200 ${
-          sidebarOpen ? "w-72" : "w-0 overflow-hidden"
+          sidebarOpen
+            ? "fixed inset-y-0 left-0 z-40 w-72 sm:relative sm:z-auto"
+            : "w-0 overflow-hidden"
         }`}
       >
         {/* Brand / nav */}
@@ -515,7 +525,7 @@ export default function AiPage() {
       {/* ── Main chat area ── */}
       <div className="flex flex-1 flex-col min-w-0">
         {/* Top bar */}
-        <header className="flex items-center gap-3 border-b border-[#2A2A2A] bg-[#171717] px-4 py-3">
+        <header className="flex items-center gap-2 sm:gap-3 border-b border-[#2A2A2A] bg-[#171717] px-3 sm:px-4 py-2.5 sm:py-3">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="rounded p-1 text-[#78716C] hover:bg-[#2A2A2A] hover:text-white transition-colors"
@@ -557,7 +567,7 @@ export default function AiPage() {
 
         {/* Chat messages */}
         <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-3xl px-4 py-6 space-y-1">
+          <div className="mx-auto max-w-3xl px-2 sm:px-4 py-4 sm:py-6 space-y-1">
             {messages.length === 0 && !loading && (
               <div className="flex flex-col items-center justify-center py-12 sm:py-24 text-center">
                 <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#C85A3E] to-[#A84A32]">
@@ -577,15 +587,15 @@ export default function AiPage() {
                     <path d="M5 3L2 6M19 3l3 3" />
                   </svg>
                 </div>
-                <h2 className="mb-2 text-xl font-semibold text-white">
+                <h2 className="mb-2 text-lg sm:text-xl font-semibold text-white">
                   Blockchain AI Assistant
                 </h2>
-                <p className="mb-8 max-w-md text-sm text-[#78716C] leading-relaxed">
+                <p className="mb-6 sm:mb-8 max-w-md text-xs sm:text-sm text-[#78716C] leading-relaxed px-4 sm:px-0">
                   I can scan chains for your wallet activity, fetch transaction
                   histories, analyze your data, and download CSV exports. Just
                   tell me your wallet address to get started.
                 </p>
-                <div className="flex flex-col gap-2 w-full max-w-md">
+                <div className="flex flex-col gap-2 w-full max-w-md px-2 sm:px-0">
                   {[
                     "Which chains do I have transactions on?",
                     "Fetch and download my Ethereum transactions",
@@ -598,7 +608,7 @@ export default function AiPage() {
                         setInput(example);
                         inputRef.current?.focus();
                       }}
-                      className="rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-4 py-3 text-left text-sm text-[#A8A29E] hover:border-[#C85A3E]/40 hover:bg-[#1E1E1E] hover:text-white transition-all"
+                      className="rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm text-[#A8A29E] hover:border-[#C85A3E]/40 hover:bg-[#1E1E1E] hover:text-white transition-all"
                     >
                       {example}
                     </button>
@@ -622,13 +632,13 @@ export default function AiPage() {
                   </div>
                 ) : msg.role === "user" ? (
                   <div className="flex justify-end py-2">
-                    <div className="max-w-[80%] rounded-2xl rounded-br-md bg-[#C85A3E] px-4 py-2.5 text-sm text-white whitespace-pre-wrap">
+                    <div className="max-w-[90%] sm:max-w-[80%] rounded-2xl rounded-br-md bg-[#C85A3E] px-3 sm:px-4 py-2.5 text-sm text-white whitespace-pre-wrap">
                       {msg.content}
                     </div>
                   </div>
                 ) : (
                   <div className="flex justify-start py-2">
-                    <div className="max-w-[80%] rounded-2xl rounded-bl-md bg-[#1E1E1E] border border-[#2A2A2A] px-4 py-2.5 text-sm text-[#E7E5E4] whitespace-pre-wrap leading-relaxed">
+                    <div className="max-w-[90%] sm:max-w-[80%] rounded-2xl rounded-bl-md bg-[#1E1E1E] border border-[#2A2A2A] px-3 sm:px-4 py-2.5 text-sm text-[#E7E5E4] whitespace-pre-wrap leading-relaxed">
                       {msg.content}
                     </div>
                   </div>
@@ -639,7 +649,7 @@ export default function AiPage() {
             {/* Tool confirmation */}
             {pendingTool && (
               <div className="flex justify-center py-3">
-                <div className="w-full max-w-md rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <div className="w-full max-w-md rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 sm:p-4">
                   <div className="mb-2 flex items-center gap-2">
                     <span className="flex h-5 w-5 items-center justify-center rounded bg-amber-500/20 text-[10px] font-bold text-amber-400">
                       {TOOL_ICONS[pendingTool.name] ?? "T"}
@@ -691,8 +701,8 @@ export default function AiPage() {
         )}
 
         {/* Input area */}
-        <div className="border-t border-[#2A2A2A] bg-[#171717] px-4 py-4">
-          <div className="mx-auto flex max-w-3xl items-end gap-3">
+        <div className="border-t border-[#2A2A2A] bg-[#171717] px-2 sm:px-4 py-2 sm:py-4">
+          <div className="mx-auto flex max-w-3xl items-end gap-2 sm:gap-3">
             <div className="relative flex-1">
               <textarea
                 ref={inputRef}
@@ -720,7 +730,7 @@ export default function AiPage() {
                 loading ? () => abortRef.current?.abort() : handleSend
               }
               disabled={!apiKey || (!loading && !input.trim())}
-              className={`flex h-[44px] items-center justify-center rounded-xl px-5 text-sm font-semibold transition-all ${
+              className={`flex h-[44px] items-center justify-center rounded-xl px-3 sm:px-5 text-sm font-semibold transition-all ${
                 loading
                   ? "bg-[#333] text-[#A8A29E] hover:bg-[#444]"
                   : "bg-[#C85A3E] text-white hover:bg-[#E07855] active:bg-[#A84A32] disabled:opacity-40"
