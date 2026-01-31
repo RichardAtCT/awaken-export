@@ -1,41 +1,55 @@
-export interface NativeTransfer {
-  from_address: string;
-  to_address: string;
-  value: string;
-  value_formatted: string;
-  token_symbol: string;
-  direction: "incoming" | "outgoing";
-}
-
-export interface ERC20Transfer {
-  from_address: string;
-  to_address: string;
-  value: string;
-  value_formatted: string;
-  token_symbol: string;
-  token_name: string;
-  token_decimals: string;
-  direction: "incoming" | "outgoing";
-  address: string;
-}
-
-export interface Transaction {
+export interface BlockScoutTx {
   hash: string;
-  block_timestamp: string;
-  from_address: string;
-  to_address: string;
+  timeStamp: string;
+  from: string;
+  to: string;
   value: string;
-  gas_price: string;
-  receipt_gas_used: string;
-  category: string;
-  summary: string;
-  native_transfers: NativeTransfer[];
-  erc20_transfers: ERC20Transfer[];
+  gasPrice: string;
+  gasUsed: string;
+  isError: string;
+  functionName: string;
+  input: string;
 }
 
-export interface MoralisResponse {
-  cursor: string | null;
-  result: Transaction[];
+export interface BlockScoutTokenTx {
+  hash: string;
+  timeStamp: string;
+  from: string;
+  to: string;
+  value: string;
+  tokenName: string;
+  tokenSymbol: string;
+  tokenDecimal: string;
+  contractAddress: string;
+}
+
+export interface BlockScoutInternalTx {
+  hash: string;
+  timeStamp: string;
+  from: string;
+  to: string;
+  value: string;
+  isError: string;
+}
+
+export interface Transfer {
+  direction: "in" | "out";
+  amount: string;
+  currency: string;
+  decimals: number;
+}
+
+export interface MergedTransaction {
+  hash: string;
+  timestamp: number;
+  from: string;
+  to: string;
+  isError: boolean;
+  gasPrice: string;
+  gasUsed: string;
+  functionName: string;
+  input: string;
+  transfers: Transfer[];
 }
 
 export interface CsvRow {
