@@ -1,6 +1,6 @@
 "use client";
 
-import { Transaction } from "@/lib/types";
+import { MergedTransaction } from "@/lib/types";
 import { ChainConfig } from "@/lib/chains";
 import { toAwakenCSV } from "@/lib/csv";
 
@@ -9,14 +9,14 @@ export default function DownloadButton({
   chain,
   address,
 }: {
-  transactions: Transaction[];
+  transactions: MergedTransaction[];
   chain: ChainConfig;
   address: string;
 }) {
   if (transactions.length === 0) return null;
 
   function handleDownload() {
-    const csv = toAwakenCSV(transactions, chain);
+    const csv = toAwakenCSV(transactions, chain, address);
     const now = new Date().toISOString().slice(0, 10);
     const safeAddr = address.slice(0, 8).replace(/[^0-9a-fA-Fx]/g, "");
     const filename = `${chain.name}_${safeAddr}_${now}.csv`;

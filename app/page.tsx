@@ -1,32 +1,40 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import { CHAINS } from "@/lib/chains";
-import { fetchTransactions, AbortedWithData } from "@/lib/moralis";
+import { useState, useRef, useEffect } from "react";
+import { ChainConfig, fetchChains } from "@/lib/chains";
+import { fetchAllTransactions, AbortedWithData } from "@/lib/blockscout";
 import { transactionsToCsvRows } from "@/lib/csv";
-import { Transaction, CsvRow } from "@/lib/types";
-import ApiKeyInput from "@/components/ApiKeyInput";
+import { MergedTransaction, CsvRow } from "@/lib/types";
 import ChainSelector from "@/components/ChainSelector";
 import AddressInput from "@/components/AddressInput";
 import TransactionTable from "@/components/TransactionTable";
 import DownloadButton from "@/components/DownloadButton";
 
 export default function Home() {
-  const [apiKey, setApiKey] = useState("");
-  const [chainKey, setChainKey] = useState("chiliz");
+  const [chains, setChains] = useState<ChainConfig[]>([]);
+  const [chainId, setChainId] = useState("");
   const [address, setAddress] = useState("");
   const [addressError, setAddressError] = useState("");
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<MergedTransaction[]>([]);
   const [csvRows, setCsvRows] = useState<CsvRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [progressMsg, setProgressMsg] = useState("");
   const [error, setError] = useState("");
-  const [limit, setLimit] = useState<number>(0);
   const abortRef = useRef<AbortController | null>(null);
 
-  const chain = CHAINS[chainKey];
+  useEffect(() => {
+    fetchChains()
+      .then((c) => {
+        setChains(c);
+        if (c.length > 0 && !chainId) {
+          const eth = c.find((ch) => ch.name === "Ethereum");
+          setChainId(eth ? eth.chainId : c[0].chainId);
+        }
+      })
+      .catch((e) => setError(`Failed to load chains: ${e.message}`));
+  }, []);
 
-  const onKeyChange = useCallback((key: string) => setApiKey(key), []);
+  const chain = chains.find((c) => c.chainId === chainId);
 
   function validateAddress(addr: string): boolean {
     if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
@@ -38,10 +46,7 @@ export default function Home() {
   }
 
   async function handleFetch() {
-    if (!apiKey) {
-      setError("Please save your Moralis API key first");
-      return;
-    }
+    if (!chain) return;
     if (!validateAddress(address)) return;
 
     const controller = new AbortController();
@@ -51,21 +56,23 @@ export default function Home() {
     setError("");
     setTransactions([]);
     setCsvRows([]);
-    setProgress(0);
+    setProgressMsg("Starting...");
 
     try {
-      const txs = await fetchTransactions(
-        address, chain.id, apiKey,
-        (count) => setProgress(count),
-        controller.signal,
-        limit || undefined
+      const txs = await fetchAllTransactions(
+        chain,
+        address,
+        (msg) => setProgressMsg(msg),
+        controller.signal
       );
       setTransactions(txs);
-      setCsvRows(transactionsToCsvRows(txs, chain));
+      setCsvRows(transactionsToCsvRows(txs, chain, address));
+      setProgressMsg(`Done — ${txs.length} transactions`);
     } catch (e) {
       if (e instanceof AbortedWithData) {
         setTransactions(e.transactions);
-        setCsvRows(transactionsToCsvRows(e.transactions, chain));
+        setCsvRows(transactionsToCsvRows(e.transactions, chain, address));
+        setProgressMsg(`Stopped — ${e.transactions.length} transactions`);
       } else {
         setError(e instanceof Error ? e.message : "Unknown error");
       }
@@ -90,34 +97,20 @@ export default function Home() {
           </h1>
         </div>
         <p className="text-sm text-[#78716C]">
-          Export wallet transactions to Awaken Tax format for Chiliz, Cronos,
-          Moonbeam, Moonriver, and Lisk.
+          Export wallet transactions to Awaken Tax format for {chains.length} EVM
+          chains via BlockScout.
         </p>
       </div>
 
       {/* Card */}
       <div className="rounded-md border border-[#E7E5E4] bg-white p-6 sm:p-8">
         <div className="space-y-6">
-          <ApiKeyInput onKeyChange={onKeyChange} />
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <ChainSelector value={chainKey} onChange={setChainKey} />
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-[#44403C]">
-                Limit
-              </label>
-              <select
-                value={limit}
-                onChange={(e) => setLimit(Number(e.target.value))}
-                className="w-full rounded-md border border-[#E7E5E4] bg-white px-3 py-2.5 text-sm text-[#1C1917] focus:border-[#C85A3E] focus:outline-none focus:ring-1 focus:ring-[#C85A3E]"
-              >
-                <option value={0}>All</option>
-                <option value={100}>100</option>
-                <option value={500}>500</option>
-                <option value={1000}>1,000</option>
-                <option value={5000}>5,000</option>
-              </select>
-            </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <ChainSelector
+              chains={chains}
+              value={chainId}
+              onChange={setChainId}
+            />
             <AddressInput
               value={address}
               onChange={setAddress}
@@ -128,14 +121,14 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleFetch}
-              disabled={loading}
+              disabled={loading || !chain}
               className={`rounded-md px-6 py-2.5 text-sm font-semibold text-white ${
-                loading
+                loading || !chain
                   ? "bg-[#C85A3E]/70"
                   : "bg-[#C85A3E] hover:bg-[#E07855] active:bg-[#A84A32]"
               }`}
             >
-              {loading ? `Fetching... (${progress} found)` : "Fetch Transactions"}
+              {loading ? "Fetching..." : "Fetch Transactions"}
             </button>
             {loading && (
               <button
@@ -145,6 +138,9 @@ export default function Home() {
                 Stop
               </button>
             )}
+            {progressMsg && (
+              <span className="text-sm text-[#78716C]">{progressMsg}</span>
+            )}
           </div>
 
           {error && (
@@ -153,11 +149,13 @@ export default function Home() {
             </div>
           )}
 
-          <DownloadButton
-            transactions={transactions}
-            chain={chain}
-            address={address}
-          />
+          {chain && (
+            <DownloadButton
+              transactions={transactions}
+              chain={chain}
+              address={address}
+            />
+          )}
 
           <TransactionTable rows={csvRows} />
         </div>
@@ -165,7 +163,7 @@ export default function Home() {
 
       {/* Footer */}
       <div className="mt-6 text-xs text-[#A8A29E]">
-        Powered by Moralis API | Data exported in Awaken Tax format
+        Powered by BlockScout API | Data exported in Awaken Tax format
       </div>
     </main>
   );

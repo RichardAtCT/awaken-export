@@ -1,39 +1,49 @@
 export interface ChainConfig {
-  id: string;
+  chainId: string;
   name: string;
   symbol: string;
   decimals: number;
+  apiUrl: string;
 }
 
-export const CHAINS: Record<string, ChainConfig> = {
-  chiliz: {
-    id: "0x15b38",
-    name: "Chiliz",
-    symbol: "CHZ",
-    decimals: 18,
-  },
-  cronos: {
-    id: "0x19",
-    name: "Cronos",
-    symbol: "CRO",
-    decimals: 18,
-  },
-  moonbeam: {
-    id: "0x504",
-    name: "Moonbeam",
-    symbol: "GLMR",
-    decimals: 18,
-  },
-  moonriver: {
-    id: "0x505",
-    name: "Moonriver",
-    symbol: "MOVR",
-    decimals: 18,
-  },
-  lisk: {
-    id: "0x46f",
-    name: "Lisk",
-    symbol: "LSK",
-    decimals: 18,
-  },
-};
+interface ChainScoutEntry {
+  name: string;
+  isTestnet: boolean;
+  native_currency: string;
+  explorers: { url: string; hostedBy: string }[];
+}
+
+const CHAINSCOUT_URL =
+  "https://raw.githubusercontent.com/blockscout/chainscout/main/data/chains.json";
+
+let cachedChains: ChainConfig[] | null = null;
+
+export async function fetchChains(): Promise<ChainConfig[]> {
+  if (cachedChains) return cachedChains;
+
+  const res = await fetch(CHAINSCOUT_URL);
+  if (!res.ok) throw new Error("Failed to fetch chain list");
+
+  const data: Record<string, ChainScoutEntry> = await res.json();
+  const chains: ChainConfig[] = [];
+
+  for (const [chainId, entry] of Object.entries(data)) {
+    if (entry.isTestnet) continue;
+    const hosted = entry.explorers?.find((e) => e.hostedBy === "blockscout");
+    if (!hosted) continue;
+
+    const apiUrl = hosted.url.replace(/\/$/, "") + "/api";
+
+    chains.push({
+      chainId,
+      name: entry.name,
+      symbol: entry.native_currency || "ETH",
+      decimals: 18,
+      apiUrl,
+    });
+  }
+
+  chains.sort((a, b) => a.name.localeCompare(b.name));
+  cachedChains = chains;
+  return chains;
+}

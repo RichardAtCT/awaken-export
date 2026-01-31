@@ -1,13 +1,15 @@
 "use client";
 
-import { CHAINS } from "@/lib/chains";
+import { ChainConfig } from "@/lib/chains";
 
 export default function ChainSelector({
+  chains,
   value,
   onChange,
 }: {
+  chains: ChainConfig[];
   value: string;
-  onChange: (chain: string) => void;
+  onChange: (chainId: string) => void;
 }) {
   return (
     <div className="space-y-2">
@@ -19,8 +21,8 @@ export default function ChainSelector({
         onChange={(e) => onChange(e.target.value)}
         className="w-full appearance-none rounded-md border border-[#E7E5E4] bg-white px-3 py-2 text-sm text-[#1C1917] transition-[border] duration-150 focus:border-[#C85A3E] focus:outline-none focus:ring-1 focus:ring-[#C85A3E]/10"
       >
-        {Object.entries(CHAINS).map(([key, chain]) => (
-          <option key={key} value={key}>
+        {chains.map((chain) => (
+          <option key={chain.chainId} value={chain.chainId}>
             {chain.name} ({chain.symbol})
           </option>
         ))}
