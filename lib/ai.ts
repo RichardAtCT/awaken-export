@@ -10,6 +10,9 @@ export interface AiConfig {
 export interface ChatMessage {
   role: "user" | "assistant" | "status";
   content: string;
+  toolName?: string;
+  toolArgs?: Record<string, unknown>;
+  toolResult?: string;
 }
 
 const OPENAI_MODELS = [
@@ -253,9 +256,16 @@ async function openAiLoop(
       const name = tc.function.name;
       const args = JSON.parse(tc.function.arguments || "{}");
       opts.onStatus(`Running ${name}...`);
-      toolMessages.push({ role: "status", content: `Running ${name}...` });
 
       const result = await opts.executeTool(name, args);
+
+      toolMessages.push({
+        role: "status",
+        content: `Running ${name}...`,
+        toolName: name,
+        toolArgs: args,
+        toolResult: result,
+      });
 
       apiMessages.push({
         role: "tool",
@@ -330,9 +340,16 @@ async function anthropicLoop(
     const toolResults: any[] = [];
     for (const block of toolUseBlocks) {
       opts.onStatus(`Running ${block.name}...`);
-      toolMessages.push({ role: "status", content: `Running ${block.name}...` });
 
       const result = await opts.executeTool(block.name, block.input ?? {});
+      toolMessages.push({
+        role: "status",
+        content: `Running ${block.name}...`,
+        toolName: block.name,
+        toolArgs: block.input ?? {},
+        toolResult: result,
+      });
+
       toolResults.push({
         type: "tool_result",
         tool_use_id: block.id,

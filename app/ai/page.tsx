@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   AiConfig,
   ChatMessage,
@@ -620,15 +622,36 @@ export default function AiPage() {
             {messages.map((msg, i) => (
               <div key={i} className="animate-in fade-in">
                 {msg.role === "status" ? (
-                  <div className="flex items-center justify-center py-1.5">
-                    <span className="flex items-center gap-1.5 rounded-full bg-[#1E1E1E] border border-[#2A2A2A] px-3 py-1 text-[11px] text-[#78716C]">
-                      <span className="flex h-4 w-4 items-center justify-center rounded bg-[#2A2A2A] text-[9px] font-bold text-[#C85A3E]">
-                        {TOOL_ICONS[
-                          msg.content.replace("Running ", "").replace("...", "")
-                        ] ?? "T"}
-                      </span>
-                      {msg.content}
-                    </span>
+                  <div className="flex justify-center py-1.5">
+                    <details className="w-full max-w-md group">
+                      <summary className="flex items-center justify-center cursor-pointer list-none">
+                        <span className="flex items-center gap-1.5 rounded-full bg-[#1E1E1E] border border-[#2A2A2A] px-3 py-1 text-[11px] text-[#78716C] hover:border-[#444] transition-colors">
+                          <span className="flex h-4 w-4 items-center justify-center rounded bg-[#2A2A2A] text-[9px] font-bold text-[#C85A3E]">
+                            {TOOL_ICONS[msg.toolName ?? ""] ?? "T"}
+                          </span>
+                          {msg.content}
+                          {msg.toolResult && (
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-1 transition-transform group-open:rotate-180">
+                              <path d="M6 9l6 6 6-6" />
+                            </svg>
+                          )}
+                        </span>
+                      </summary>
+                      {msg.toolResult && (
+                        <div className="mt-1.5 mx-auto max-w-md rounded-lg border border-[#2A2A2A] bg-[#141414] p-3 text-xs text-[#A8A29E]">
+                          {msg.toolArgs && Object.keys(msg.toolArgs).length > 0 && (
+                            <div className="mb-2 font-mono text-[10px] text-[#555]">
+                              {Object.entries(msg.toolArgs).map(([k, v]) => (
+                                <span key={k} className="mr-2">{k}: <span className="text-[#78716C]">{JSON.stringify(v)}</span></span>
+                              ))}
+                            </div>
+                          )}
+                          <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed">
+                            {msg.toolResult.length > 500 ? msg.toolResult.slice(0, 500) + "..." : msg.toolResult}
+                          </pre>
+                        </div>
+                      )}
+                    </details>
                   </div>
                 ) : msg.role === "user" ? (
                   <div className="flex justify-end py-2">
@@ -638,8 +661,8 @@ export default function AiPage() {
                   </div>
                 ) : (
                   <div className="flex justify-start py-2">
-                    <div className="max-w-[90%] sm:max-w-[80%] rounded-2xl rounded-bl-md bg-[#1E1E1E] border border-[#2A2A2A] px-3 sm:px-4 py-2.5 text-sm text-[#E7E5E4] whitespace-pre-wrap leading-relaxed">
-                      {msg.content}
+                    <div className="max-w-[90%] sm:max-w-[80%] rounded-2xl rounded-bl-md bg-[#1E1E1E] border border-[#2A2A2A] px-3 sm:px-4 py-2.5 text-sm text-[#E7E5E4] leading-relaxed ai-markdown">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                     </div>
                   </div>
                 )}
