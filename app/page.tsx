@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { CHAINS } from "@/lib/chains";
-import { fetchTransactions } from "@/lib/moralis";
+import { fetchTransactions, AbortedWithData } from "@/lib/moralis";
 import { transactionsToCsvRows } from "@/lib/csv";
 import { Transaction, CsvRow } from "@/lib/types";
 import ApiKeyInput from "@/components/ApiKeyInput";
@@ -21,6 +21,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
+  const [limit, setLimit] = useState<number>(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   const chain = CHAINS[chainKey];
 
@@ -42,6 +44,9 @@ export default function Home() {
     }
     if (!validateAddress(address)) return;
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     setError("");
     setTransactions([]);
@@ -49,45 +54,70 @@ export default function Home() {
     setProgress(0);
 
     try {
-      const txs = await fetchTransactions(address, chain.id, apiKey, (count) =>
-        setProgress(count)
+      const txs = await fetchTransactions(
+        address, chain.id, apiKey,
+        (count) => setProgress(count),
+        controller.signal,
+        limit || undefined
       );
       setTransactions(txs);
       setCsvRows(transactionsToCsvRows(txs, chain));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
+      if (e instanceof AbortedWithData) {
+        setTransactions(e.transactions);
+        setCsvRows(transactionsToCsvRows(e.transactions, chain));
+      } else {
+        setError(e instanceof Error ? e.message : "Unknown error");
+      }
     } finally {
+      abortRef.current = null;
       setLoading(false);
     }
   }
 
+  function handleCancel() {
+    abortRef.current?.abort();
+  }
+
   return (
-    <main className="relative z-10 mx-auto max-w-4xl px-4 py-12">
+    <main className="relative mx-auto max-w-4xl px-4 py-12">
       {/* Header */}
-      <div className="mb-8 text-center">
-        <div className="mb-4 inline-flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500">
-            <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">
+      <div className="mb-8">
+        <div className="mb-1 flex items-center gap-2.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#C85A3E]" />
+          <h1 className="text-[28px] font-bold tracking-tight text-[#1C1917]">
             Awaken Tax CSV Exporter
           </h1>
         </div>
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-[#78716C]">
           Export wallet transactions to Awaken Tax format for Chiliz, Cronos,
           Moonbeam, Moonriver, and Lisk.
         </p>
       </div>
 
-      {/* Glass Card */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-8">
+      {/* Card */}
+      <div className="rounded-md border border-[#E7E5E4] bg-white p-6 sm:p-8">
         <div className="space-y-6">
           <ApiKeyInput onKeyChange={onKeyChange} />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:grid-cols-3">
             <ChainSelector value={chainKey} onChange={setChainKey} />
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-[#44403C]">
+                Limit
+              </label>
+              <select
+                value={limit}
+                onChange={(e) => setLimit(Number(e.target.value))}
+                className="w-full rounded-md border border-[#E7E5E4] bg-white px-3 py-2.5 text-sm text-[#1C1917] focus:border-[#C85A3E] focus:outline-none focus:ring-1 focus:ring-[#C85A3E]"
+              >
+                <option value={0}>All</option>
+                <option value={100}>100</option>
+                <option value={500}>500</option>
+                <option value={1000}>1,000</option>
+                <option value={5000}>5,000</option>
+              </select>
+            </div>
             <AddressInput
               value={address}
               onChange={setAddress}
@@ -95,22 +125,30 @@ export default function Home() {
             />
           </div>
 
-          <button
-            onClick={handleFetch}
-            disabled={loading}
-            className={`relative rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:from-indigo-400 hover:to-violet-400 disabled:opacity-50 ${loading ? "animate-progress-pulse" : "hover:shadow-lg hover:shadow-indigo-500/25"}`}
-          >
-            {loading ? `Fetching... (${progress} found)` : "Fetch Transactions"}
-          </button>
-
-          {loading && progress > 0 && (
-            <div className="h-1 overflow-hidden rounded-full bg-white/5">
-              <div className="animate-progress-pulse h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-300" style={{ width: "100%" }} />
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleFetch}
+              disabled={loading}
+              className={`rounded-md px-6 py-2.5 text-sm font-semibold text-white ${
+                loading
+                  ? "bg-[#C85A3E]/70"
+                  : "bg-[#C85A3E] hover:bg-[#E07855] active:bg-[#A84A32]"
+              }`}
+            >
+              {loading ? `Fetching... (${progress} found)` : "Fetch Transactions"}
+            </button>
+            {loading && (
+              <button
+                onClick={handleCancel}
+                className="rounded-md border border-[#E7E5E4] px-4 py-2.5 text-sm font-medium text-[#78716C] hover:border-[#D6D3D1]"
+              >
+                Stop
+              </button>
+            )}
+          </div>
 
           {error && (
-            <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+            <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
               {error}
             </div>
           )}
@@ -126,8 +164,8 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <div className="mt-6 text-center text-xs text-gray-600">
-        Powered by Moralis API &middot; Data exported in Awaken Tax format
+      <div className="mt-6 text-xs text-[#A8A29E]">
+        Powered by Moralis API | Data exported in Awaken Tax format
       </div>
     </main>
   );
