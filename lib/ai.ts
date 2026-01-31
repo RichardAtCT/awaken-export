@@ -29,6 +29,16 @@ export function getModelsForProvider(provider: "openai" | "anthropic"): string[]
   return provider === "openai" ? OPENAI_MODELS : ANTHROPIC_MODELS;
 }
 
+/** Sanitize a string from blockchain data before including in prompts. */
+function sanitize(s: string, maxLen = 30): string {
+  return s.replace(/[^\x20-\x7E]/g, "").slice(0, maxLen);
+}
+
+/** Truncate API error bodies to avoid leaking sensitive info. */
+function truncateError(body: string, max = 200): string {
+  return body.length > max ? body.slice(0, max) + "..." : body;
+}
+
 // ── Tool definitions ──
 
 export interface ToolCall {
@@ -134,7 +144,7 @@ function buildSystemPrompt(
 
 CSV data summary (first 30 rows):
 ${csvRows.slice(0, 30).map((r) =>
-  `${r.date} | Recv: ${r.receivedAmount} ${r.receivedCurrency} | Sent: ${r.sentAmount} ${r.sentCurrency} | Fee: ${r.feeAmount} ${r.feeCurrency} | Tag: ${r.tag}`
+  `${r.date} | Recv: ${sanitize(r.receivedAmount)} ${sanitize(r.receivedCurrency)} | Sent: ${sanitize(r.sentAmount)} ${sanitize(r.sentCurrency)} | Fee: ${sanitize(r.feeAmount)} ${sanitize(r.feeCurrency)} | Tag: ${sanitize(r.tag)}`
 ).join("\n")}
 ${csvRows.length > 30 ? `\n... and ${csvRows.length - 30} more rows.` : ""}`
     : "No transactions currently loaded.";
@@ -166,6 +176,9 @@ IMPORTANT BEHAVIOR:
 // ── Main entry: agentic loop ──
 
 export type ToolExecutor = (name: string, args: Record<string, unknown>) => Promise<string>;
+
+/** Tools that are read-only and safe to auto-execute without user confirmation. */
+export const SAFE_TOOLS = new Set(["list_chains", "get_status"]);
 
 export interface SendOptions {
   config: AiConfig;
@@ -220,7 +233,7 @@ async function openAiLoop(
 
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`OpenAI API error ${res.status}: ${body}`);
+      throw new Error(`OpenAI API error ${res.status}: ${truncateError(body)}`);
     }
 
     const data = await res.json();
@@ -289,7 +302,7 @@ async function anthropicLoop(
 
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Anthropic API error ${res.status}: ${body}`);
+      throw new Error(`Anthropic API error ${res.status}: ${truncateError(body)}`);
     }
 
     const data = await res.json();

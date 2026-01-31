@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { AiConfig, ChatMessage, sendChatMessage, getModelsForProvider } from "@/lib/ai";
+import { AiConfig, ChatMessage, sendChatMessage, getModelsForProvider, SAFE_TOOLS } from "@/lib/ai";
 import { ChainConfig } from "@/lib/chains";
 import { MergedTransaction, CsvRow } from "@/lib/types";
 import { fetchAllTransactions } from "@/lib/blockscout";
@@ -33,6 +33,7 @@ export default function AiMode({ chains, chain, address, transactions, csvRows, 
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
   const [error, setError] = useState("");
+  const [pendingTool, setPendingTool] = useState<{ name: string; args: Record<string, unknown>; resolve: (approved: boolean) => void } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -187,7 +188,8 @@ export default function AiMode({ chains, chain, address, transactions, csvRows, 
         const a = document.createElement("a");
         const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
         a.href = url;
-        a.download = `${target.name}_${addr.slice(0, 8)}_${dateStr}.csv`;
+        const safeName = target.name.replace(/[^a-zA-Z0-9_-]/g, "_");
+        a.download = `${safeName}_${addr.slice(0, 8)}_${dateStr}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -207,6 +209,42 @@ export default function AiMode({ chains, chain, address, transactions, csvRows, 
         return `Unknown tool: ${name}`;
     }
   }, [actions]);
+
+  // ── Tool description for confirmation UI ──
+
+  function describeToolCall(name: string, args: Record<string, unknown>): string {
+    switch (name) {
+      case "set_address": return `Set wallet address to ${args.address}`;
+      case "scan_chains": {
+        const names = args.chain_names as string[] | undefined;
+        return names?.length ? `Scan ${names.length} chains for activity` : "Scan all chains for activity";
+      }
+      case "fetch_transactions": return `Fetch transactions on ${args.chain_name}`;
+      case "download_csv": return `Download CSV for ${args.chain_name}`;
+      default: return `Run ${name}`;
+    }
+  }
+
+  // ── Confirmation-wrapping executor ──
+
+  const executeToolWithConfirmation = useCallback(async (name: string, args: Record<string, unknown>): Promise<string> => {
+    // Safe (read-only) tools auto-execute
+    if (SAFE_TOOLS.has(name)) {
+      return executeTool(name, args);
+    }
+
+    // Action tools require user confirmation
+    const approved = await new Promise<boolean>((resolve) => {
+      setPendingTool({ name, args, resolve });
+    });
+    setPendingTool(null);
+
+    if (!approved) {
+      return `Action "${name}" was denied by the user.`;
+    }
+
+    return executeTool(name, args);
+  }, [executeTool]);
 
   // ── Send message ──
 
@@ -235,7 +273,7 @@ export default function AiMode({ chains, chain, address, transactions, csvRows, 
         transactions: transactionsRef.current,
         csvRows: csvRowsRef.current,
         chains: chainsRef.current,
-        executeTool,
+        executeTool: executeToolWithConfirmation,
         onStatus: setStatusMsg,
         signal: controller.signal,
       });
@@ -369,7 +407,27 @@ export default function AiMode({ chains, chain, address, transactions, csvRows, 
             )}
           </div>
         ))}
-        {loading && (
+        {pendingTool && (
+          <div className="mb-3 mx-auto max-w-[85%] rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs font-medium text-amber-800 mb-2">AI wants to perform an action:</p>
+            <p className="text-sm text-amber-900 mb-3">{describeToolCall(pendingTool.name, pendingTool.args)}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => pendingTool.resolve(true)}
+                className="rounded px-3 py-1 text-xs font-semibold bg-[#C85A3E] text-white hover:bg-[#E07855]"
+              >
+                Approve
+              </button>
+              <button
+                onClick={() => pendingTool.resolve(false)}
+                className="rounded px-3 py-1 text-xs font-semibold border border-[#E7E5E4] text-[#78716C] hover:border-[#D6D3D1]"
+              >
+                Deny
+              </button>
+            </div>
+          </div>
+        )}
+        {loading && !pendingTool && (
           <div className="mb-3 text-center">
             <span className="inline-block rounded-full bg-[#F5F5F4] px-3 py-1 text-xs text-[#78716C]">
               {statusMsg || "Thinking..."}

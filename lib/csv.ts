@@ -30,6 +30,8 @@ export function calculateFee(gasPrice: string, gasUsed: string): string {
 
 function escapeCSV(field: string): string {
   if (!field) return field;
+  // Strip characters that can break CSV cell boundaries
+  field = field.replace(/[\t\r]/g, " ");
   const first = field[0];
   if (first === "=" || first === "+" || first === "-" || first === "@") {
     field = "'" + field;
