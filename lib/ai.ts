@@ -112,6 +112,55 @@ const TOOLS_DESCRIPTION = [
     description: "Get the current status: which chain is selected, what address is entered, how many transactions are loaded, and a summary of the data.",
     parameters: { type: "object" as const, properties: {}, required: [] as string[] },
   },
+  {
+    name: "search_transactions",
+    description:
+      "Search through loaded transactions using filters. Returns up to 50 matching CSV rows. Use this to answer questions about specific transactions, find transactions by date, currency, tag, or amount. All filters are optional and combined with AND logic.",
+    parameters: {
+      type: "object" as const,
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "Free-text search across all fields (date, currencies, amounts, tag). Case-insensitive.",
+        },
+        tag: {
+          type: "string",
+          description:
+            "Filter by tag: Transfer, Trade, Contract, Failed, Approval, Wrap.",
+        },
+        currency: {
+          type: "string",
+          description:
+            "Filter by received or sent currency symbol (case-insensitive).",
+        },
+        date_from: {
+          type: "string",
+          description: "Start date inclusive (YYYY-MM-DD format).",
+        },
+        date_to: {
+          type: "string",
+          description: "End date inclusive (YYYY-MM-DD format).",
+        },
+        min_amount: {
+          type: "number",
+          description:
+            "Minimum received or sent amount (absolute value).",
+        },
+        max_amount: {
+          type: "number",
+          description:
+            "Maximum received or sent amount (absolute value).",
+        },
+        offset: {
+          type: "number",
+          description:
+            "Number of matching rows to skip (for pagination). Default 0.",
+        },
+      },
+      required: [] as string[],
+    },
+  },
 ];
 
 // ── OpenAI format tools ──
@@ -166,6 +215,7 @@ You have tools to:
 4. fetch_transactions — fetch full transaction history on a chain
 5. download_csv — download the CSV for a chain
 6. get_status — check current state
+7. search_transactions — search/filter loaded transactions by date, currency, tag, amount, or free text. Use this to answer questions about the user's transaction history without needing all rows in context. Supports pagination with offset.
 
 IMPORTANT BEHAVIOR:
 - When a user provides a wallet address, use set_address first.
@@ -173,6 +223,7 @@ IMPORTANT BEHAVIOR:
 - When asked to download or fetch transactions, use fetch_transactions then download_csv.
 - When asked to download from ALL chains with activity, scan first, then fetch+download each chain sequentially.
 - Always confirm actions before doing large operations (scanning all 40+ chains).
+- When the user asks questions about their transactions (e.g. "show me my largest trades", "what did I do in March", "how much ETH did I receive"), use search_transactions to find relevant rows instead of relying only on the summary in context. Use pagination (offset) if the user needs more results.
 - Be concise. Use markdown for structure.`;
 }
 
@@ -181,7 +232,7 @@ IMPORTANT BEHAVIOR:
 export type ToolExecutor = (name: string, args: Record<string, unknown>) => Promise<string>;
 
 /** Tools that are read-only and safe to auto-execute without user confirmation. */
-export const SAFE_TOOLS = new Set(["list_chains", "get_status"]);
+export const SAFE_TOOLS = new Set(["list_chains", "get_status", "search_transactions"]);
 
 export interface SendOptions {
   config: AiConfig;

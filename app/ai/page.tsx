@@ -301,6 +301,62 @@ export default function AiPage() {
           return `Status:\n- Chain: ${c?.name ?? "none"} (${c?.symbol ?? ""})\n- Address: ${currentAddress || "none"}\n- Transactions loaded: ${txs.length}\n- CSV rows: ${rows.length}\n- Available chains: ${allChains.length}`;
         }
 
+        case "search_transactions": {
+          const rows = csvRowsRef.current;
+          if (rows.length === 0) {
+            return "No transactions loaded. Use fetch_transactions first.";
+          }
+
+          const query = (args.query as string | undefined)?.toLowerCase();
+          const tag = (args.tag as string | undefined)?.toLowerCase();
+          const currency = (args.currency as string | undefined)?.toLowerCase();
+          const dateFrom = args.date_from as string | undefined;
+          const dateTo = args.date_to as string | undefined;
+          const minAmount = args.min_amount as number | undefined;
+          const maxAmount = args.max_amount as number | undefined;
+          const offset = (args.offset as number | undefined) ?? 0;
+          const PAGE_SIZE = 50;
+
+          const matched = rows.filter((r) => {
+            if (tag && r.tag.toLowerCase() !== tag) return false;
+            if (currency) {
+              const rc = r.receivedCurrency.toLowerCase();
+              const sc = r.sentCurrency.toLowerCase();
+              if (rc !== currency && sc !== currency) return false;
+            }
+            if (dateFrom && r.date < dateFrom) return false;
+            if (dateTo && r.date > dateTo + "T23:59:59") return false;
+            if (minAmount != null || maxAmount != null) {
+              const recv = Math.abs(parseFloat(r.receivedAmount) || 0);
+              const sent = Math.abs(parseFloat(r.sentAmount) || 0);
+              const amt = Math.max(recv, sent);
+              if (minAmount != null && amt < minAmount) return false;
+              if (maxAmount != null && amt > maxAmount) return false;
+            }
+            if (query) {
+              const haystack = `${r.date} ${r.receivedAmount} ${r.receivedCurrency} ${r.sentAmount} ${r.sentCurrency} ${r.feeAmount} ${r.feeCurrency} ${r.tag}`.toLowerCase();
+              if (!haystack.includes(query)) return false;
+            }
+            return true;
+          });
+
+          const page = matched.slice(offset, offset + PAGE_SIZE);
+          if (page.length === 0) {
+            return `No matching transactions found (searched ${rows.length} rows).`;
+          }
+
+          const header = `Found ${matched.length} matching rows (showing ${offset + 1}–${offset + page.length}):`;
+          const lines = page.map(
+            (r) =>
+              `${r.date} | Recv: ${r.receivedAmount} ${r.receivedCurrency} | Sent: ${r.sentAmount} ${r.sentCurrency} | Fee: ${r.feeAmount} ${r.feeCurrency} | ${r.tag}`
+          );
+          const footer =
+            offset + PAGE_SIZE < matched.length
+              ? `\n... ${matched.length - offset - PAGE_SIZE} more rows. Use offset=${offset + PAGE_SIZE} to see next page.`
+              : "";
+          return `${header}\n${lines.join("\n")}${footer}`;
+        }
+
         default:
           return `Unknown tool: ${name}`;
       }
