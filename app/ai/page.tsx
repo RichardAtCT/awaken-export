@@ -69,7 +69,9 @@ export default function AiPage() {
     args: Record<string, unknown>;
     resolve: (approved: boolean) => void;
   } | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(
+    typeof window !== "undefined" ? window.innerWidth >= 640 : true
+  );
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -557,7 +559,7 @@ export default function AiPage() {
         <div className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-3xl px-4 py-6 space-y-1">
             {messages.length === 0 && !loading && (
-              <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="flex flex-col items-center justify-center py-12 sm:py-24 text-center">
                 <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#C85A3E] to-[#A84A32]">
                   <svg
                     width="28"
@@ -583,10 +585,10 @@ export default function AiPage() {
                   histories, analyze your data, and download CSV exports. Just
                   tell me your wallet address to get started.
                 </p>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 w-full max-w-lg">
+                <div className="flex flex-col gap-2 w-full max-w-md">
                   {[
-                    "My address is 0x... — which chains do I have transactions on?",
-                    "Fetch my transactions on Ethereum and download the CSV",
+                    "Which chains do I have transactions on?",
+                    "Fetch and download my Ethereum transactions",
                     "Scan all chains and download everything",
                     "How much have I spent on gas fees?",
                   ].map((example) => (
@@ -596,7 +598,7 @@ export default function AiPage() {
                         setInput(example);
                         inputRef.current?.focus();
                       }}
-                      className="rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-4 py-3 text-left text-xs text-[#A8A29E] hover:border-[#C85A3E]/40 hover:bg-[#1E1E1E] hover:text-white transition-all"
+                      className="rounded-lg border border-[#2A2A2A] bg-[#1A1A1A] px-4 py-3 text-left text-sm text-[#A8A29E] hover:border-[#C85A3E]/40 hover:bg-[#1E1E1E] hover:text-white transition-all"
                     >
                       {example}
                     </button>
