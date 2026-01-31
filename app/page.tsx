@@ -163,7 +163,16 @@ export default function Home() {
 
       {/* Footer */}
       <div className="mt-6 text-xs text-[#A8A29E]">
-        Powered by BlockScout API | Data exported in Awaken Tax format
+        Powered by BlockScout API | Data exported in Awaken Tax format |{" "}
+        <a
+          href="https://github.com/RichardAtCT/awaken-export"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-[#78716C]"
+        >
+          Open source
+        </a>{" "}
+        — contributions welcome
       </div>
     </main>
   );
